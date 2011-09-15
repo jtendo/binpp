@@ -1,0 +1,7 @@
+{application,binpp,
+             [{description,"Erlang Binary Pretty Printer"},
+              {vsn,"1"},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {mod,{}},
+              {modules,[binpp]}]}.
