@@ -33,7 +33,7 @@ convert(Bin, bin) when is_binary(Bin) ->
 -spec convert(binary()) -> {ok, list()}.
 
 convert(Bin) when is_binary(Bin) ->
-    convert(Bin).
+    convert(Bin, hex).
 
 -spec format(binary(), atom()) -> ok.
 
