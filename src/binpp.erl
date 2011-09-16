@@ -24,10 +24,10 @@
 
 -spec convert(binary(), atom()) -> {ok, list()}.
 
-convert(Bin, hex) when is_binary(Bin) ->
+convert(Bin, hex) when is_binary(Bin) orelse is_bitstring(Bin) ->
     convert(Bin, [], fun hexstr/1);
 
-convert(Bin, bin) when is_binary(Bin) ->
+convert(Bin, bin) when is_binary(Bin) orelse is_bitstring(Bin) ->
     convert(Bin, [], fun binstr/1).
 
 -spec convert(binary()) -> {ok, list()}.
@@ -64,6 +64,12 @@ pprint(Bin) ->
 
 convert(<<>>, Acc, _) ->
     {ok, lists:reverse(Acc)};
+
+%% byte align bistring() to make a complementary binary()
+convert(Bin, [], FormatFun) when is_bitstring(Bin), not is_binary(Bin) ->
+    Align = (8 - (bit_size(Bin) rem 8)),
+    io:format("Warning! Aligned bitstring with ~.10B bit(s).~n", [Align]),
+    convert(<<Bin/binary, 0:Align>>, [], FormatFun);
 
 convert(<<Bin:8/integer, Rest/binary>>, SoFar, FormatFun) ->
     convert(Rest, [FormatFun(Bin)|SoFar], FormatFun).
