@@ -133,11 +133,11 @@ diff([], [H2|R2], LD, RD) ->
 diff([H1|R1], [], LD, RD) ->
     diff(R1, [], [H1|LD], ["??"|RD]);
 
+diff([H1|R1], [H2|R2], LD, RD) when H1 =:= H2 ->
+    diff(R1, R2, ["--"|LD], ["--"|RD]);
+
 diff([H1|R1], [H2|R2], LD, RD) ->
-    case H1 =:= H2 of
-        true -> diff(R1, R2, ["--"|LD], ["--"|RD]);
-        false -> diff(R1, R2, [H1|LD], [H2|RD])
-    end.
+     diff(R1, R2, [H1|LD], [H2|RD]).
 
 diff(L1, L2) when is_list(L1), is_list(L2) ->
     diff(L1, L2, [], []).
