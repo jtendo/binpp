@@ -14,7 +14,7 @@
 
 -module(binpp).
 -author('Adam Rutkowski adam@mtod.org').
--export([pprint/1, pprint/3]).
+-export([pprint/1]).
 -export([cmprint/2]).
 -export([from_str/1, from_str/2]).
 -export([format/1, format/2]).
@@ -67,7 +67,8 @@ pprint(Bin, Pos, _) ->
 
 -spec cmprint(binary(), binary()) -> ok.
 
-cmprint(Bin1, Bin2) when is_binary(Bin1), is_binary(Bin2) ->
+cmprint(Bin1, Bin2) when is_binary(Bin1) orelse is_bitstring(Bin1),
+                         is_binary(Bin2) orelse is_bitstring(Bin2) ->
     {ok, Octets1} = convert(Bin1, hex),
     {ok, Octets2} = convert(Bin2, hex),
     {ok, {D1, D2}} = diff(Octets1, Octets2),
