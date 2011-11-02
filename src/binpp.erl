@@ -14,9 +14,12 @@
 
 -module(binpp).
 -author('Adam Rutkowski adam@mtod.org').
--export([pprint/1]).
+-export([pprint/1, pprint/3]).
+-export([cmprint/2]).
+-export([from_str/1, from_str/2]).
 -export([format/1, format/2]).
 -export([convert/1, convert/2]).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                   API                                   %
@@ -56,11 +59,36 @@ pprint(Bin) ->
     lists:foreach(fun print_bucket/1, Buckets),
     ok.
 
+pprint(Bin, Pos, Len) when Len =< size(Bin) ->
+    pprint(binary:part(Bin, Pos, Len));
+
+pprint(Bin, Pos, _) ->
+    pprint(binary:part(Bin, Pos, size(Bin)-Pos)).
+
+-spec cmprint(binary(), binary()) -> ok.
+
+cmprint(Bin1, Bin2) when is_binary(Bin1), is_binary(Bin2) ->
+    {ok, Octets1} = convert(Bin1, hex),
+    {ok, Octets2} = convert(Bin2, hex),
+    {ok, {D1, D2}} = diff(Octets1, Octets2),
+    print_comparsion(buckets(16, D1), buckets(16, D2)).
+
+-spec from_str(string(), hex) -> binary().
+
+from_str(Str, hex) when is_list(Str) ->
+    Bytes = string:tokens(Str, " "),
+    list_to_binary(lists:map(fun(Byte) ->
+                list_to_integer(Byte, 16)
+        end, Bytes)).
+
+-spec from_str(string()) -> binary().
+
+from_str(Str) when is_list(Str) ->
+    from_str(Str, hex).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                 Core :)                                 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 convert(<<>>, Acc, _) ->
     {ok, lists:reverse(Acc)};
@@ -85,6 +113,34 @@ print_bucket(Bucket) ->
             end,
             Bucket),
     io:format("~s ~s~n", [string:left(OctetLine, 16*2 + 16, $ ), OctetRepr]).
+
+print_comparsion([], []) ->
+    ok;
+
+print_comparsion([L|LRest], [R|RRest]) ->
+    Zfill = fun(Line) -> string:left(Line, 16*2 + 16, $ ) end,
+    DiffL = Zfill(string:join(L, " ")),
+    DiffR = Zfill(string:join(R, " ")),
+    io:format("~s  ~s~n", [DiffL, DiffR]),
+    print_comparsion(LRest, RRest).
+
+diff([], [], LD, RD) ->
+    {ok, {lists:reverse(LD), lists:reverse(RD)}};
+
+diff([], [H2|R2], LD, RD) ->
+    diff([], R2, ["??"|LD], [H2|RD]);
+
+diff([H1|R1], [], LD, RD) ->
+    diff(R1, [], [H1|LD], ["??"|RD]);
+
+diff([H1|R1], [H2|R2], LD, RD) ->
+    case H1 =:= H2 of
+        true -> diff(R1, R2, ["--"|LD], ["--"|RD]);
+        false -> diff(R1, R2, [H1|LD], [H2|RD])
+    end.
+
+diff(L1, L2) when is_list(L1), is_list(L2) ->
+    diff(L1, L2, [], []).
 
 hexstr(B) -> string:right(integer_to_list(B, 16), 2, $0).
 binstr(B) -> string:right(integer_to_list(B, 2), 8, $0).
