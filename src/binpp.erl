@@ -14,7 +14,7 @@
 
 -module(binpp).
 -author('Adam Rutkowski adam@mtod.org').
--export([pprint/1]).
+-export([pprint/1, pprint/3]).
 -export([cmprint/2]).
 -export([from_str/1, from_str/2]).
 -export([format/1, format/2]).
