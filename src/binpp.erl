@@ -77,10 +77,13 @@ cmprint(Bin1, Bin2) when is_binary(Bin1) orelse is_bitstring(Bin1),
 -spec from_str(string(), hex) -> binary().
 
 from_str(Str, hex) when is_list(Str) ->
-    Bytes = string:tokens(Str, " "),
-    list_to_binary(lists:map(fun(Byte) ->
-                list_to_integer(Byte, 16)
-        end, Bytes)).
+    case lists:member($ , Str) of
+        true ->
+            Bytes = string:tokens(Str, " ");
+        false when length(Str) rem 2 =:= 0 ->
+            Bytes = buckets(2, Str)
+    end,
+    list_to_binary([ list_to_integer(B,16) || B <- Bytes]).
 
 -spec from_str(string()) -> binary().
 
