@@ -42,22 +42,19 @@ convert(Bin) when is_binary(Bin) ->
 
 format(Bin, Base) ->
     {ok, Octets} = convert(Bin, Base),
-    io:format("~p~n", [string:join(Octets, " ")]),
-    ok.
+    io:format("~p~n", [string:join(Octets, " ")]).
 
 -spec format(binary()) -> ok.
 
 format(Bin) ->
-    format(Bin, hex),
-    ok.
+    format(Bin, hex).
 
 -spec pprint(binary()) -> ok.
 
 pprint(Bin) ->
     {ok, Octets} = convert(Bin, hex),
     Buckets = buckets(16, Octets),
-    lists:foreach(fun print_bucket/1, Buckets),
-    ok.
+    lists:foreach(fun print_bucket/1, Buckets).
 
 pprint(Bin, Pos, Len) when Len =< size(Bin) ->
     pprint(binary:part(Bin, Pos, Len));
@@ -83,7 +80,7 @@ from_str(Str, hex) when is_list(Str) ->
                 false when length(Str) rem 2 =:= 0 ->
                     buckets(2, Str)
             end,
-    list_to_binary([ list_to_integer(B,16) || B <- Bytes]).
+    list_to_binary([list_to_integer(B, 16) || B <- Bytes]).
 
 -spec from_str(string()) -> binary().
 
@@ -161,4 +158,3 @@ buckets(N, N, M, [H|T], [A|Acc]) ->
     buckets(1, N, M-1, T, [[], lists:reverse([H|A]) | Acc]);
 buckets(X, N, M, [H|T], [A|Acc]) ->
     buckets(X+1, N, M, T, [[H|A]|Acc]).
-
