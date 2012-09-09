@@ -54,7 +54,7 @@ format(Bin) ->
 pprint(Bin) ->
     {ok, Octets} = convert(Bin, hex),
     Buckets = buckets(16, Octets),
-    lists:foreach(fun print_bucket/1, Buckets).
+    io:format("~s~n", [lists:map(fun print_bucket/1, Buckets)]).
 
 pprint(Bin, Pos, Len) when Len =< size(Bin) ->
     pprint(binary:part(Bin, Pos, Len));
@@ -113,7 +113,7 @@ print_bucket(Bucket) ->
                 end
             end,
             Bucket),
-    io:format("~s ~s~n", [string:left(OctetLine, 16*2 + 16, $ ), OctetRepr]).
+    io_lib:format("~s ~s~n", [string:left(OctetLine, 16*2 + 16, $ ), OctetRepr]).
 
 print_comparsion([], []) ->
     ok;
