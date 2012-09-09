@@ -15,6 +15,7 @@
 -module(binpp).
 -author('Adam Rutkowski adam@mtod.org').
 -export([pprint/1, pprint/3]).
+-export([pbin/1, pbin/3]).
 -export([cmprint/2]).
 -export([from_str/1, from_str/2]).
 -export([format/1, format/2]).
@@ -61,6 +62,19 @@ pprint(Bin, Pos, Len) when Len =< size(Bin) ->
 
 pprint(Bin, Pos, _) ->
     pprint(binary:part(Bin, Pos, size(Bin)-Pos)).
+
+-spec pbin(binary()) -> iolist().
+
+pbin(Bin) ->
+    {ok, Octets} = convert(Bin, hex),
+    Buckets = buckets(16, Octets),
+    lists:map(fun print_bucket/1, Buckets).
+
+pbin(Bin, Pos, Len) when Len =< size(Bin) ->
+    pbin(binary:part(Bin, Pos, Len));
+
+pbin(Bin, Pos, _) ->
+    pbin(binary:part(Bin, Pos, size(Bin)-Pos)).
 
 -spec cmprint(binary(), binary()) -> ok.
 
