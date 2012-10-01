@@ -14,13 +14,14 @@
 
 -module(binpp).
 -author('Adam Rutkowski adam@mtod.org').
--export([pprint/1, pprint/3]).
--export([pbin/1, pbin/3]).
+-export([pprint/1, pprint/2, pprint/3]).
 -export([cmprint/2]).
 -export([from_str/1, from_str/2]).
 -export([format/1, format/2]).
 -export([convert/1, convert/2]).
 
+-opaque opt() :: {return, iolist} | {return, binary} | {printer, function()}.
+-opaque opts() :: list(opt()).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                   API                                   %
@@ -53,28 +54,22 @@ format(Bin) ->
 -spec pprint(binary()) -> ok.
 
 pprint(Bin) ->
+    pprint(Bin, []).
+
+-spec pprint(binary(), opts()) -> ok | any().
+
+pprint(Bin, Opts) when is_list(Opts) ->
     {ok, Octets} = convert(Bin, hex),
     Buckets = buckets(16, Octets),
-    io:format("~s~n", [lists:map(fun print_bucket/1, Buckets)]).
+    apply_opts(lists:map(fun print_bucket/1, Buckets), Opts).
 
-pprint(Bin, Pos, Len) when Len =< size(Bin) ->
-    pprint(binary:part(Bin, Pos, Len));
+-spec pprint(binary(), {non_neg_integer(), non_neg_integer()},
+             opts()) -> ok | any().
 
-pprint(Bin, Pos, _) ->
-    pprint(binary:part(Bin, Pos, size(Bin)-Pos)).
-
--spec pbin(binary()) -> iolist().
-
-pbin(Bin) ->
-    {ok, Octets} = convert(Bin, hex),
-    Buckets = buckets(16, Octets),
-    lists:map(fun print_bucket/1, Buckets).
-
-pbin(Bin, Pos, Len) when Len =< size(Bin) ->
-    pbin(binary:part(Bin, Pos, Len));
-
-pbin(Bin, Pos, _) ->
-    pbin(binary:part(Bin, Pos, size(Bin)-Pos)).
+pprint(Bin, {Pos, Len}, Opts) when Len =< size(Bin) ->
+    pprint(binary:part(Bin, Pos, Len), Opts);
+pprint(Bin, {Pos, _}, Opts) ->
+    pprint(binary:part(Bin, Pos, size(Bin)-Pos), Opts).
 
 -spec cmprint(binary(), binary()) -> ok.
 
@@ -104,6 +99,16 @@ from_str(Str) when is_list(Str) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                 Core :)                                 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+apply_opts(IoList, []) ->
+    io:format("~s~n", [IoList]);
+apply_opts(IoList, [{return, iolist}]) ->
+    IoList;
+apply_opts(IoList, [{return, binary}]) ->
+    iolist_to_binary(IoList);
+apply_opts(IoList, [{printer, Fun}]) when is_function(Fun) ->
+    Fun(IoList);
+apply_opts(_, _) -> erlang:error(badarg).
 
 convert(<<>>, Acc, _) ->
     {ok, lists:reverse(Acc)};
@@ -141,16 +146,12 @@ print_comparsion([L|LRest], [R|RRest]) ->
 
 diff([], [], LD, RD) ->
     {ok, {lists:reverse(LD), lists:reverse(RD)}};
-
 diff([], [H2|R2], LD, RD) ->
     diff([], R2, ["??"|LD], [H2|RD]);
-
 diff([H1|R1], [], LD, RD) ->
     diff(R1, [], [H1|LD], ["??"|RD]);
-
 diff([H1|R1], [H2|R2], LD, RD) when H1 =:= H2 ->
     diff(R1, R2, ["--"|LD], ["--"|RD]);
-
 diff([H1|R1], [H2|R2], LD, RD) ->
      diff(R1, R2, [H1|LD], [H2|RD]).
 
