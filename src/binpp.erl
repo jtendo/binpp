@@ -114,7 +114,7 @@ convert(Bin, [], FormatFun) when is_bitstring(Bin), not is_binary(Bin) ->
     %% byte align bistring() to make a complementary binary()
     Align = (8 - (bit_size(Bin) rem 8)),
     error_logger:info_msg("Aligned bitstring with ~.10B bit(s).~n", [Align]),
-    convert(<<Bin/binary, 0:Align>>, [], FormatFun);
+    convert(<<Bin/bitstring, 0:Align>>, [], FormatFun);
 convert(<<Bin:8/integer, Rest/binary>>, SoFar, FormatFun) ->
     convert(Rest, [FormatFun(Bin)|SoFar], FormatFun).
 
@@ -252,7 +252,9 @@ convert_test_() ->
     Tests = [
             { <<1,2,3>>,  ["01", "02", "03"] },
             { <<256:32>>, ["00", "00", "01", "00"] },
-            { <<"AAA">>,  ["41", "41", "41"] }
+            { <<"AAA">>,  ["41", "41", "41"] },
+            { <<256:7>>,  ["00"] },
+            { <<256:9>>,  ["80", "00"] }
         ],
     [ { <<"Convert">>, fun() -> ?assertEqual({ok, R}, F(I)) end } || { I, R } <- Tests ].
 
