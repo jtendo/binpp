@@ -27,30 +27,6 @@
 %                                   API                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec convert(binary(), atom()) -> {ok, list()}.
-
-convert(Bin, hex) when is_binary(Bin) orelse is_bitstring(Bin) ->
-    convert(Bin, [], fun hexstr/1);
-
-convert(Bin, bin) when is_binary(Bin) orelse is_bitstring(Bin) ->
-    convert(Bin, [], fun binstr/1).
-
--spec convert(binary()) -> {ok, list()}.
-
-convert(Bin) when is_binary(Bin) ->
-    convert(Bin, hex).
-
--spec format(binary(), atom()) -> ok.
-
-format(Bin, Base) ->
-    {ok, Octets} = convert(Bin, Base),
-    io:format("~p~n", [string:join(Octets, " ")]).
-
--spec format(binary()) -> ok.
-
-format(Bin) ->
-    format(Bin, hex).
-
 -spec pprint(binary()) -> ok.
 
 pprint(Bin) ->
@@ -95,6 +71,30 @@ from_str(Str, hex) when is_list(Str) ->
 
 from_str(Str) when is_list(Str) ->
     from_str(Str, hex).
+
+-spec format(binary(), atom()) -> ok.
+
+format(Bin, Base) ->
+    {ok, Octets} = convert(Bin, Base),
+    io:format("~p~n", [string:join(Octets, " ")]).
+
+-spec format(binary()) -> ok.
+
+format(Bin) ->
+    format(Bin, hex).
+
+-spec convert(binary(), atom()) -> {ok, list()}.
+
+convert(Bin, hex) when is_binary(Bin) orelse is_bitstring(Bin) ->
+    convert(Bin, [], fun hexstr/1);
+
+convert(Bin, bin) when is_binary(Bin) orelse is_bitstring(Bin) ->
+    convert(Bin, [], fun binstr/1).
+
+-spec convert(binary()) -> {ok, list()}.
+
+convert(Bin) when is_binary(Bin) ->
+    convert(Bin, hex).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %                                 Core :)                                 %
