@@ -58,4 +58,7 @@ Plus a handy little helper:
     00 00 04 00                                       ?? ?? ?? ??
     ok
 
+
+Edoc available at http://jtendo.github.com/binpp/doc/.
+
 That's all folks!
