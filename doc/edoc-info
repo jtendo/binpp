@@ -1,0 +1,3 @@
+{application,binpp}.
+{packages,[]}.
+{modules,[binpp]}.

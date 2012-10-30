@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>binpp - Erlang Binary Pretty Printer</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<h1>binpp - Erlang Binary Pretty Printer</h1>
+<p>Copyright � 2012 (c) Adam Rutkowski &lt;hq@mtod.org&gt;</p>
+<p><b>Version:</b> 1.1
+</p>
+<p>This lilbrary provides additional utility functions for working with Erlang
+<em>binary()</em> and <em>bitstring()</em> types.</p>
+
+You might find it useful if you are going to:
+<ul>
+ <li>Implement or debug arbitrary protocols</li>
+ <li>Log/dump binary data</li>
+ <li>Learn how Erlang binaries work</li>
+</ul>
+
+<h2>Installation</h2>
+
+<ol>
+
+<li><p>binpp comes with a Makefile that requires rebar build tool.</p>
+
+If you don't have rebar installed, you may get it from <a href="https://github.com/basho/rebar">Rebar Github repository</a>
+</li>
+
+<li><p>
+Download the sources from <a href="http://github.com/jtendo/binpp">binpp Github repository</a>.</p>
+
+    <ul>
+    <li>To build the library run <em>make</em>.</li>
+    <li>To run the tests run <em>make test</em>.</li>
+    <li>To generate documentation run <em>make docs</em>.</li>
+    </ul>
+</li>
+</ol>
+
+
+
+<h2>Example usage</h2>
+
+<pre>    1&gt; Bin.
+    &lt;&lt;12,242,207,49,82,69,45,130,212,69,80,88,8,81,23,36,86,7,
+      68,19,133,97,51,216,56,145,88,8,81,...&gt;&gt;
+    2&gt; binpp:pprint(Bin).
+    0C F2 CF 31 52 45 2D 82 D4 45 50 58 08 51 17 24  .òÏ1RE-ÔEPX.Q.$
+    56 07 44 13 85 61 33 D8 38 91 58 08 51 17 24 56  V.D.a3Ø8X.Q.$V
+    0A 14 20 4E 24 16 09 60 F4 0A 15 11 01 30 13 89  .. N$..`ô....0.
+    05 81 0F 09 15 C5 61 33 D8 54 91 52 5D 81 17 24  ....Åa3ØTR].$
+    11 14 60 23 D1 3D 55 80                          ..`#Ñ=U
+    ok</pre>
+
+<p>Binpp will use <em>io:format</em> to output the formatted binary by default, however
+there are options making pprint functions return formatted data instead
+of performing direct IO write:</p>
+
+<pre>    1&gt; Bin2 = &lt;&lt;"foo bar baz"&gt;&gt;.
+    &lt;&lt;"foo bar baz"&gt;&gt;
+    2&gt; binpp:pprint(Bin2, [{return, iolist}]).
+    [["66 6F 6F 20 62 61 72 20 62 61 7A                ",32,
+      "foo bar baz","\n"]]
+    3&gt; binpp:pprint(Bin2, [{return, binary}]).
+    &lt;&lt;"66 6F 6F 20 62 61 72 20 62 61 7A                 foo bar baz\n"&gt;&gt;</pre>
+
+<p>You may use a custom printer function as well:</p>
+
+<pre>    4&gt; binpp:pprint(Bin2, [{printer, fun(O) -&gt; io:format("~s~n", [O]) end}]).
+    66 6F 6F 20 62 61 72 20 62 61 7A                 foo bar baz
+
+    ok</pre>
+
+<p>An additional API is provided for printing binary fragments:</p>
+
+<pre>    5&gt; binpp:pprint(Bin2, {0, 3}, []).
+    66 6F 6F                                         foo</pre>
+
+<p>Also, binary byte-to-byte comparsion:</p>
+
+<pre>    6&gt; binpp:compare(&lt;&lt;1,2,1024:512,3,4&gt;&gt;, &lt;&lt;1,3,1024:512,5,6&gt;&gt;).
+    -- 02 -- -- -- -- -- -- -- -- -- -- -- -- -- --   -- 03 -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --   -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --   -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --   -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+    -- -- 03 04                                       -- -- 05 06
+    ok</pre>
+
+<p>Plus a handy little helper:</p>
+
+<pre>    7&gt; binpp:compare(&lt;&lt;1,2,255,3,1024:512&gt;&gt;, binpp:from_str("01 02 FF CC")).
+    -- -- -- 03 00 00 00 00 00 00 00 00 00 00 00 00   -- -- -- CC ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ??
+    00 00 04 00                                       ?? ?? ?? ??
+    ok</pre>
+
+<p>That's all folks!</p>
+
+<h2>Get involved</h2>
+
+<p>Bug reports can be submitted to: <a href="http://github.com/jtendo/binpp/issues/">binpp issues @ Github</a>.</p>
+
+<p>Patches and feature requests are always welcome!</p>
+
+<h2>Module index:</h2>
+<dl>
+    <dt><a href="binpp.html"><code>binpp</code></a></dt>
+    <dd>Erlang Binary Pretty Printer</dd>
+</dl>
+
+<hr>
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc, Oct 30 2012, 14:26:44.</i></p>
+</body>
+</html>
