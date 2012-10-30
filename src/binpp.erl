@@ -12,7 +12,8 @@
 %%%   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 %%%
 
-%% @doc Pretty printer for Erlang binaries
+%% @doc Pretty printer for Erlang binaries.
+%%
 -module(binpp).
 -author('Adam Rutkowski hq@mtod.org').
 
@@ -21,7 +22,7 @@
 -export([from_str/1]).
 -export([convert/1, convert/2]).
 
--opaque opt() :: {return, iolist} | {return, binary} | {printer, function()}.
+-opaque opt()  :: {return, iolist} | {return, binary} | {printer, function()}.
 -opaque opts() :: list(opt()).
 
 %% Printer constants
@@ -37,12 +38,22 @@
 %                                   API                                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% @doc Pretty print a binary to stdout using io:format/2
+%% @doc Pretty print a binary to stdout using <em>io:format/2</em>
+%% Note: <em>io:format/2</em> is a blocking call.
 -spec pprint(binary() | bitstring()) -> ok.
 pprint(Bin) ->
     pprint(Bin, []).
 
-%% @doc Print a binary w/ custom function or return the prettified result.
+%% @doc Print a binary using custom function or return the formatted result.
+%% Valid option is one of:
+%% <ul>
+%%  <li>{return, binary}</li>
+%%  <li>{return, iolist}</li>
+%%  <li>{printer, CustomFunction}</li>
+%% </ul>
+%%
+%% Custom printers should be of arity 1, accepting the prettified result as
+%% an <em>iolist()</em> input. Returned value can be <em>any()</em>.
 -spec pprint(binary() | bitstring(), opts()) -> ok | any().
 pprint(Bin, Opts) when is_list(Opts) ->
     {ok, Octets} = convert(Bin, hex),
@@ -66,8 +77,13 @@ compare(Bin1, Bin2) when is_binary(Bin1) orelse is_bitstring(Bin1),
     {ok, {D1, D2}} = diff(Octets1, Octets2),
     print_comparison(buckets(16, D1), buckets(16, D2)).
 
-%% @doc Construct binary from hexstring.
-%% Hexstring octets can be optionally separated with spaces.
+%% @doc Construct binary from hex string.
+%% Hex string octets can be optionally separated with spaces.
+%% Valid hex strings:
+%% <ul>
+%% <li>"AA BB FF 01"</li>
+%% <li>"AABBFF01"</li>
+%% </ul>
 -spec from_str(string()) -> binary().
 from_str(Str) when is_list(Str) ->
     Bytes = case lists:member(?SPACE, Str) of
@@ -83,7 +99,7 @@ from_str(Str) when is_list(Str) ->
 convert(Bin) when is_binary(Bin) orelse is_bitstring(Bin) ->
     convert(Bin, hex).
 
-%% @doc Convert binary to hex string or binary string.
+%% @doc Convert binary to hex string or binary (base-2) string.
 -spec convert(binary() | bitstring(), hex | bin) -> {ok, list()}.
 convert(Bin, hex) when is_binary(Bin) orelse is_bitstring(Bin) ->
     convert(Bin, [], fun byte_to_hexstr/1);
