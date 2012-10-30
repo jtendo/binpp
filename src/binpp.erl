@@ -52,10 +52,10 @@ pprint(Bin, Opts) when is_list(Opts) ->
 %% @doc Pretty print a slice of binary.
 -spec pprint(binary() | bitstring(), {non_neg_integer(), non_neg_integer()},
              opts()) -> ok | any().
-pprint(Bin, {Pos, Len}, Opts) when Len =< size(Bin) ->
+pprint(Bin, {Pos, Len}, Opts) when Len =< byte_size(Bin), (Pos+Len) =< byte_size(Bin) ->
     pprint(binary:part(Bin, Pos, Len), Opts);
 pprint(Bin, {Pos, _}, Opts) ->
-    pprint(binary:part(Bin, Pos, size(Bin)-Pos), Opts).
+    pprint(binary:part(Bin, Pos, byte_size(Bin)-Pos), Opts).
 
 %% @doc Pretty print byte-to-byte comparsion of two binaries to stdout.
 -spec compare(binary() | bitstring(), binary() | bitstring()) -> ok.
@@ -72,11 +72,9 @@ compare(Bin1, Bin2) when is_binary(Bin1) orelse is_bitstring(Bin1),
 from_str(Str) when is_list(Str) ->
     Bytes = case lists:member(?SPACE, Str) of
                 true ->
-                    string:tokens(Str, ?SPACE);
+                    string:tokens(Str, [?SPACE]);
                 false when length(Str) rem 2 =:= 0 ->
-                    buckets(2, Str);
-                false ->
-                    erlang:error(badarg)
+                    buckets(2, Str)
             end,
     list_to_binary([list_to_integer(B, 16) || B <- Bytes]).
 
@@ -189,6 +187,86 @@ buckets(X, N, M, [H|T], [A|Acc]) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
+-define(MAX_BIN_SIZE, 2048).
+-define(RUNS, 100).
+
+pprint_crash_test_() ->
+    F = fun pprint/1,
+    _ = random:seed(erlang:now()),
+    Tests = [ { crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)), ok } || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random pprint">>, fun() -> ?assertEqual(R, F(I)) end }
+             || { I, R } <- Tests ].
+
+pprint_bitstring_crash_test_() ->
+    F = fun pprint/1,
+    _ = random:seed(erlang:now()),
+    Tests = [ { << (crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)))/binary, 0:(random:uniform(7))>>, ok }
+             || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random pprint (bitstring)">>, fun() -> ?assertEqual(R, F(I)) end }
+             || { I, R } <- Tests ].
+
+compare_crash_test_() ->
+    F = fun compare/2,
+    _ = random:seed(erlang:now()),
+    Rand = fun() -> crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)) end,
+    Tests = [ { { Rand(), Rand() }, ok } || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random compare">>, fun() -> ?assertEqual(R, F(I1, I2)) end }
+             || { {I1, I2}, R } <- Tests ].
+
+pprint_opts_test_() ->
+    F = fun pprint/2,
+    _ = random:seed(erlang:now()),
+    CustomPrinter = fun(B) when is_list(B) -> works end,
+    OptsMap = [
+                %% Option                          %% Predicate
+                { {return,  binary},               fun erlang:is_binary/1  },
+                { {return,  iolist},               fun erlang:is_list/1    },
+                { {printer, CustomPrinter},        fun(works) -> true; (_) -> false end  },
+                { {invalid, option},               fun({'EXIT', {badarg, _}}) -> true; (O) -> O end }
+            ],
+    Range = length(OptsMap),
+    Rand = fun() ->
+        Input = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+        {Opt, Predicate} = lists:nth(random:uniform(Range), OptsMap),
+        {Input, Opt, Predicate}
+    end,
+    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
+    Title = fun(Opt) ->
+            iolist_to_binary([ "Random pprint w/ opt: ", io_lib:format("~p", [Opt]) ]) end,
+    [ { Title(Opt), fun() -> ?assertEqual(true, Pred( catch( F(I, [Opt]) ) )) end }
+             || {I, Opt, Pred} <- Tests ].
+
+pprint_slice_test_() ->
+    F = fun pprint/3,
+    _ = random:seed(erlang:now()),
+    Rand = fun() ->
+            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+            Pos = random:uniform(byte_size(Bytes)),
+            Len = random:uniform(byte_size(Bytes)),
+            {Bytes, Pos, Len}
+    end,
+    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
+    Title = fun(Size, Slice) ->
+            iolist_to_binary(io_lib:format("Random pprint w/ slice: (~p) ~p", [Size, Slice]))
+    end,
+    [ { Title(byte_size(Bytes), {Pos, Len}), fun() -> ?assertEqual(ok, F(Bytes, {Pos, Len}, [])) end }
+        || { Bytes, Pos, Len } <- Tests ].
+
+from_str_test_() ->
+    F = fun from_str/1,
+    _ = random:seed(erlang:now()),
+    Rand = fun() ->
+            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+            {ok, Converted} = convert(Bytes),
+            case random:uniform(2) of
+                1 -> {lists:flatten(Converted), Bytes};
+                2 -> {string:join(Converted, " "), Bytes}
+            end
+    end,
+    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random from_str">>, fun() -> ?assertEqual(R, F(I)) end }
+             || { I, R } <- Tests ].
+
 buckets_test_() ->
     F = fun buckets/2,
     Tests = [
@@ -198,7 +276,7 @@ buckets_test_() ->
             { {4, [1,2,3,4]}, [ [1,2,3,4] ] },
             { {5, [1,2,3,4]}, [ [1,2,3,4] ] }
         ],
-    [ { <<"Buckets test">>, fun() -> ?assertEqual(R, F(I1, I2)) end }
+    [ { <<"Buckets">>, fun() -> ?assertEqual(R, F(I1, I2)) end }
              || { {I1, I2}, R } <- Tests ].
 
 byte_to_binstr_test_() ->
@@ -247,7 +325,7 @@ print_bucket_test_() ->
     [ { iolist_to_binary(["Print ", I]), fun() -> ?assertEqual(R, F(I)) end }
              || { I, R } <- Tests ].
 
-convert_test_() ->
+convert_hex_test_() ->
     F = fun convert/1,
     Tests = [
             { <<1,2,3>>,  ["01", "02", "03"] },
@@ -257,5 +335,16 @@ convert_test_() ->
             { <<256:9>>,  ["80", "00"] }
         ],
     [ { <<"Convert">>, fun() -> ?assertEqual({ok, R}, F(I)) end } || { I, R } <- Tests ].
+
+convert_bin_test_() ->
+    F = fun convert/2,
+    Tests = [
+            { <<1,2,3>>,  ["00000001","00000010","00000011"] },
+            { <<256:32>>, ["00000000","00000000","00000001", "00000000"] },
+            { <<"AAA">>,  ["01000001","01000001","01000001"] },
+            { <<256:7>>,  ["00000000"] },
+            { <<256:9>>,  ["10000000","00000000"] }
+        ],
+    [ { <<"Convert">>, fun() -> ?assertEqual({ok, R}, F(I, bin)) end } || { I, R } <- Tests ].
 
 -endif.
