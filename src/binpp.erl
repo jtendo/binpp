@@ -190,82 +190,19 @@ buckets(X, N, M, [H|T], [A|Acc]) ->
 -define(MAX_BIN_SIZE, 2048).
 -define(RUNS, 100).
 
-pprint_crash_test_() ->
-    F = fun pprint/1,
+setup_random() ->
     _ = random:seed(erlang:now()),
-    Tests = [ { crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)), ok } || _ <- lists:seq(1, ?RUNS) ],
-    [ { <<"Random pprint">>, fun() -> ?assertEqual(R, F(I)) end }
-             || { I, R } <- Tests ].
+    ok.
 
-pprint_bitstring_crash_test_() ->
-    F = fun pprint/1,
-    _ = random:seed(erlang:now()),
-    Tests = [ { << (crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)))/binary, 0:(random:uniform(7))>>, ok }
-             || _ <- lists:seq(1, ?RUNS) ],
-    [ { <<"Random pprint (bitstring)">>, fun() -> ?assertEqual(R, F(I)) end }
-             || { I, R } <- Tests ].
-
-compare_crash_test_() ->
-    F = fun compare/2,
-    _ = random:seed(erlang:now()),
-    Rand = fun() -> crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)) end,
-    Tests = [ { { Rand(), Rand() }, ok } || _ <- lists:seq(1, ?RUNS) ],
-    [ { <<"Random compare">>, fun() -> ?assertEqual(R, F(I1, I2)) end }
-             || { {I1, I2}, R } <- Tests ].
-
-pprint_opts_test_() ->
-    F = fun pprint/2,
-    _ = random:seed(erlang:now()),
-    CustomPrinter = fun(B) when is_list(B) -> works end,
-    OptsMap = [
-                %% Option                          %% Predicate
-                { {return,  binary},               fun erlang:is_binary/1  },
-                { {return,  iolist},               fun erlang:is_list/1    },
-                { {printer, CustomPrinter},        fun(works) -> true; (_) -> false end  },
-                { {invalid, option},               fun({'EXIT', {badarg, _}}) -> true; (O) -> O end }
-            ],
-    Range = length(OptsMap),
-    Rand = fun() ->
-        Input = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
-        {Opt, Predicate} = lists:nth(random:uniform(Range), OptsMap),
-        {Input, Opt, Predicate}
-    end,
-    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
-    Title = fun(Opt) ->
-            iolist_to_binary([ "Random pprint w/ opt: ", io_lib:format("~p", [Opt]) ]) end,
-    [ { Title(Opt), fun() -> ?assertEqual(true, Pred( catch( F(I, [Opt]) ) )) end }
-             || {I, Opt, Pred} <- Tests ].
-
-pprint_slice_test_() ->
-    F = fun pprint/3,
-    _ = random:seed(erlang:now()),
-    Rand = fun() ->
-            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
-            Pos = random:uniform(byte_size(Bytes)),
-            Len = random:uniform(byte_size(Bytes)),
-            {Bytes, Pos, Len}
-    end,
-    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
-    Title = fun(Size, Slice) ->
-            iolist_to_binary(io_lib:format("Random pprint w/ slice: (~p) ~p", [Size, Slice]))
-    end,
-    [ { Title(byte_size(Bytes), {Pos, Len}), fun() -> ?assertEqual(ok, F(Bytes, {Pos, Len}, [])) end }
-        || { Bytes, Pos, Len } <- Tests ].
-
-from_str_test_() ->
-    F = fun from_str/1,
-    _ = random:seed(erlang:now()),
-    Rand = fun() ->
-            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
-            {ok, Converted} = convert(Bytes),
-            case random:uniform(2) of
-                1 -> {lists:flatten(Converted), Bytes};
-                2 -> {string:join(Converted, " "), Bytes}
-            end
-    end,
-    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
-    [ { <<"Random from_str">>, fun() -> ?assertEqual(R, F(I)) end }
-             || { I, R } <- Tests ].
+binpp_random_test_() ->
+    {setup, fun setup_random/0, [
+            {generator, fun rand_pprint/0},
+            {generator, fun rand_pprint_bitstring/0},
+            {generator, fun rand_compare/0},
+            {generator, fun rand_pprint_opts/0},
+            {generator, fun rand_pprint_slice/0},
+            {generator, fun rand_from_str/0}
+    ]}.
 
 buckets_test_() ->
     F = fun buckets/2,
@@ -346,5 +283,76 @@ convert_bin_test_() ->
             { <<256:9>>,  ["10000000","00000000"] }
         ],
     [ { <<"Convert">>, fun() -> ?assertEqual({ok, R}, F(I, bin)) end } || { I, R } <- Tests ].
+
+rand_pprint() ->
+    F = fun pprint/1,
+    Tests = [ { crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)), ok } || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random pprint">>, fun() -> ?assertEqual(R, F(I)) end }
+             || { I, R } <- Tests ].
+
+rand_pprint_bitstring() ->
+    F = fun pprint/1,
+    Tests = [ { << (crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)))/binary, 0:(random:uniform(7))>>, ok }
+             || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random pprint (bitstring)">>, fun() -> ?assertEqual(R, F(I)) end }
+             || { I, R } <- Tests ].
+
+rand_compare() ->
+    F = fun compare/2,
+    Rand = fun() -> crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)) end,
+    Tests = [ { { Rand(), Rand() }, ok } || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random compare">>, fun() -> ?assertEqual(R, F(I1, I2)) end }
+             || { {I1, I2}, R } <- Tests ].
+
+rand_pprint_opts() ->
+    F = fun pprint/2,
+    CustomPrinter = fun(B) when is_list(B) -> works end,
+    OptsMap = [
+                %% Option                          %% Predicate
+                { {return,  binary},               fun erlang:is_binary/1  },
+                { {return,  iolist},               fun erlang:is_list/1    },
+                { {printer, CustomPrinter},        fun(works) -> true; (_) -> false end  },
+                { {invalid, option},               fun({'EXIT', {badarg, _}}) -> true; (O) -> O end }
+            ],
+    Range = length(OptsMap),
+    Rand = fun() ->
+        Input = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+        {Opt, Predicate} = lists:nth(random:uniform(Range), OptsMap),
+        {Input, Opt, Predicate}
+    end,
+    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
+    Title = fun(Opt) ->
+            iolist_to_binary([ "Random pprint w/ opt: ", io_lib:format("~p", [Opt]) ]) end,
+    [ { Title(Opt), fun() -> ?assertEqual(true, Pred( catch( F(I, [Opt]) ) )) end }
+             || {I, Opt, Pred} <- Tests ].
+
+rand_pprint_slice() ->
+    F = fun pprint/3,
+    Rand = fun() ->
+            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+            Pos = random:uniform(byte_size(Bytes)),
+            Len = random:uniform(byte_size(Bytes)),
+            {Bytes, Pos, Len}
+    end,
+    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
+    Title = fun(Size, Slice) ->
+            iolist_to_binary(io_lib:format("Random pprint w/ slice: (~p) ~p", [Size, Slice]))
+    end,
+    [ { Title(byte_size(Bytes), {Pos, Len}), fun() -> ?assertEqual(ok, F(Bytes, {Pos, Len}, [])) end }
+        || { Bytes, Pos, Len } <- Tests ].
+
+rand_from_str() ->
+    F = fun from_str/1,
+    Rand = fun() ->
+            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+            {ok, Converted} = convert(Bytes),
+            case random:uniform(2) of
+                1 -> {lists:flatten(Converted), Bytes};
+                2 -> {string:join(Converted, " "), Bytes}
+            end
+    end,
+    Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
+    [ { <<"Random from_str">>, fun() -> ?assertEqual(R, F(I)) end }
+             || { I, R } <- Tests ].
 
 -endif.
