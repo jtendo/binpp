@@ -147,7 +147,7 @@ print_bucket(Bucket, Offset, OffsetFill) ->
             end,
             Bucket),
     FormatedOffset = string:right(integer_to_list(Offset, 16), OffsetFill, $0),
-    io_lib:format("~s ~s ~s~n", [FormatedOffset, string:left(OctetLine, 16*2 + 16, ?SPACE), OctetRepr]).
+    io_lib:format("~s: ~s ~s~n", [FormatedOffset, string:left(OctetLine, 16*2 + 16, ?SPACE), OctetRepr]).
 
 -spec print_comparison(list(), list()) -> ok.
 print_comparison([], []) ->
@@ -275,10 +275,10 @@ print_bucket_test_() ->
     F = fun print_bucket/3,
     Tests = [
             { ["00", "FF"],
-              ["0000", 32, "00 FF                                           ", ?SPACE, [?SPECIAL, 255], "\n"] },
+              ["0000", 58, 32, "00 FF                                           ", ?SPACE, [?SPECIAL, 255], "\n"] },
 
             { ["41" || _ <- lists:seq(1, 16) ],
-              ["0000", 32, "41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 ", ?SPACE, [$A || _ <- lists:seq(1, 16)], "\n"] }
+              ["0000", 58, 32, "41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 ", ?SPACE, [$A || _ <- lists:seq(1, 16)], "\n"] }
         ],
     [ { iolist_to_binary(["Print ", I]), fun() -> ?assertEqual(R, F(I, 0, 4)) end }
              || { I, R } <- Tests ].
