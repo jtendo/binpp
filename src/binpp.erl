@@ -58,7 +58,8 @@ pprint(Bin) ->
 pprint(Bin, Opts) when is_list(Opts) ->
     {ok, Octets} = convert(Bin, hex),
     Buckets = buckets(16, Octets),
-    apply_opts(lists:map(fun print_bucket/1, Buckets), Opts).
+    Printed = print_buckets(Buckets),
+    apply_opts(Printed, Opts).
 
 %% @doc Pretty print a slice of binary.
 -spec pprint(binary() | bitstring(), {non_neg_integer(), non_neg_integer()},
@@ -131,6 +132,14 @@ convert(Bin, [], FormatFun) when is_bitstring(Bin), not is_binary(Bin) ->
     convert(<<Bin/bitstring, 0:Align>>, [], FormatFun);
 convert(<<Bin:8/integer, Rest/binary>>, SoFar, FormatFun) ->
     convert(Rest, [FormatFun(Bin)|SoFar], FormatFun).
+
+print_buckets(Buckets) ->
+    {Printed, _} = lists:mapfoldl(fun(Bucket, Offset) ->
+            B = print_bucket(Bucket),
+            Annotated = io_lib:format("~4.16.0B ~s", [Offset, B]),
+            {Annotated, Offset+1}
+        end, 0, Buckets),
+    Printed.
 
 print_bucket(Bucket) ->
     OctetLine = string:join(Bucket, [?SPACE]),
@@ -277,6 +286,38 @@ print_bucket_test_() ->
         ],
     [ { iolist_to_binary(["Print ", I]), fun() -> ?assertEqual(R, F(I)) end }
              || { I, R } <- Tests ].
+
+print_buckets_test_() ->
+    F = fun print_buckets/1,
+    Tests = [
+            {
+                [ ["00", "FF"] || _ <- lists:seq(0, 16) ],
+                lists:flatten([
+                "0000 00 FF                                            .",255,"\n",
+                "0001 00 FF                                            .",255,"\n",
+                "0002 00 FF                                            .",255,"\n",
+                "0003 00 FF                                            .",255,"\n",
+                "0004 00 FF                                            .",255,"\n",
+                "0005 00 FF                                            .",255,"\n",
+                "0006 00 FF                                            .",255,"\n",
+                "0007 00 FF                                            .",255,"\n",
+                "0008 00 FF                                            .",255,"\n",
+                "0009 00 FF                                            .",255,"\n",
+                "000A 00 FF                                            .",255,"\n",
+                "000B 00 FF                                            .",255,"\n",
+                "000C 00 FF                                            .",255,"\n",
+                "000D 00 FF                                            .",255,"\n",
+                "000E 00 FF                                            .",255,"\n",
+                "000F 00 FF                                            .",255,"\n",
+                "0010 00 FF                                            .",255,"\n"])
+            }
+    ],
+    [ { iolist_to_binary(["Print buckets ", I]),
+               fun() ->
+                    B = F(I),
+                    ?assertEqual(R, lists:flatten(B))
+               end } || { I, R } <- Tests ].
+
 
 convert_hex_test_() ->
     F = fun convert/1,
