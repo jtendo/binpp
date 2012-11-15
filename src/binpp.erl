@@ -58,8 +58,9 @@ pprint(Bin) ->
 pprint(Bin, Opts) when is_list(Opts) ->
     {ok, Octets} = convert(Bin, hex),
     Buckets = buckets(16, Octets),
+    OffsetFill = length(integer_to_list(byte_size(Bin), 16)),
     {Result, _} = lists:mapfoldl(fun(Bucket, Offset) ->
-                                {print_bucket(Bucket, Offset), Offset + 16}
+                                {print_bucket(Bucket, Offset, OffsetFill), Offset + 16}
                             end, 0, Buckets),
     apply_opts(Result, Opts).
 
@@ -135,7 +136,7 @@ convert(Bin, [], FormatFun) when is_bitstring(Bin), not is_binary(Bin) ->
 convert(<<Bin:8/integer, Rest/binary>>, SoFar, FormatFun) ->
     convert(Rest, [FormatFun(Bin)|SoFar], FormatFun).
 
-print_bucket(Bucket, Offset) ->
+print_bucket(Bucket, Offset, OffsetFill) ->
     OctetLine = string:join(Bucket, [?SPACE]),
     OctetRepr = lists:map(
             fun(B) ->
@@ -145,7 +146,7 @@ print_bucket(Bucket, Offset) ->
                 end
             end,
             Bucket),
-    FormatedOffset = string:right(integer_to_list(Offset, 16), 4, $0),
+    FormatedOffset = string:right(integer_to_list(Offset, 16), OffsetFill, $0),
     io_lib:format("~s ~s ~s~n", [FormatedOffset, string:left(OctetLine, 16*2 + 16, ?SPACE), OctetRepr]).
 
 -spec print_comparison(list(), list()) -> ok.
@@ -271,7 +272,7 @@ diff_test_() ->
              || { {I1, I2}, R } <- Tests ].
 
 print_bucket_test_() ->
-    F = fun print_bucket/2,
+    F = fun print_bucket/3,
     Tests = [
             { ["00", "FF"],
               ["0000", 32, "00 FF                                           ", ?SPACE, [?SPECIAL, 255], "\n"] },
@@ -279,7 +280,7 @@ print_bucket_test_() ->
             { ["41" || _ <- lists:seq(1, 16) ],
               ["0000", 32, "41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 ", ?SPACE, [$A || _ <- lists:seq(1, 16)], "\n"] }
         ],
-    [ { iolist_to_binary(["Print ", I]), fun() -> ?assertEqual(R, F(I, 0)) end }
+    [ { iolist_to_binary(["Print ", I]), fun() -> ?assertEqual(R, F(I, 0, 4)) end }
              || { I, R } <- Tests ].
 
 convert_hex_test_() ->
