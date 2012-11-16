@@ -58,7 +58,7 @@ pprint(Bin) ->
 pprint(Bin, Opts) when is_list(Opts) ->
     {ok, Octets} = convert(Bin, hex),
     Buckets = buckets(16, Octets),
-    OffsetFill = length(integer_to_list(byte_size(Bin), 16)),
+    OffsetFill = length(integer_to_list(byte_size(Bin) - 1, 16)),
     {Result, _} = lists:mapfoldl(fun(Bucket, Offset) ->
                                 {print_bucket(Bucket, Offset, OffsetFill), Offset + 16}
                             end, 0, Buckets),
