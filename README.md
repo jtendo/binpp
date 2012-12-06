@@ -9,11 +9,11 @@ Example usage:
     <<12,242,207,49,82,69,45,130,212,69,80,88,8,81,23,36,86,7,
       68,19,133,97,51,216,56,145,88,8,81,...>>
     2> binpp:pprint(Bin).
-    00: 0C F2 CF 31 52 45 2D 82 D4 45 50 58 08 51 17 24  .òÏ1RE-ÔEPX.Q.$
-    10: 56 07 44 13 85 61 33 D8 38 91 58 08 51 17 24 56  V.D.a3Ø8X.Q.$V
-    20: 0A 14 20 4E 24 16 09 60 F4 0A 15 11 01 30 13 89  .. N$..`ô....0.
-    30: 05 81 0F 09 15 C5 61 33 D8 54 91 52 5D 81 17 24  ....Åa3ØTR].$
-    40: 11 14 60 23 D1 3D 55 80                          ..`#Ñ=U
+    0000 0C F2 CF 31 52 45 2D 82 D4 45 50 58 08 51 17 24  .òÏ1RE-ÔEPX.Q.$
+    0010 56 07 44 13 85 61 33 D8 38 91 58 08 51 17 24 56  V.D.a3Ø8X.Q.$V
+    0020 0A 14 20 4E 24 16 09 60 F4 0A 15 11 01 30 13 89  .. N$..`ô....0.
+    0030 05 81 0F 09 15 C5 61 33 D8 54 91 52 5D 81 17 24  ....Åa3ØTR].$
+    0040 11 14 60 23 D1 3D 55 80                          ..`#Ñ=U
     ok
 
 Binpp will use io:format to output the formatted binary by default, however
@@ -31,14 +31,14 @@ of performing direct IO write:
 You may use a custom printer function as well:
 
     4> binpp:pprint(Bin2, [{printer, fun(O) -> io:format("~s~n", [O]) end}]).
-    00: 66 6F 6F 20 62 61 72 20 62 61 7A                 foo bar baz
+    0000 66 6F 6F 20 62 61 72 20 62 61 7A                 foo bar baz
 
     ok
 
 An additional API is provided for printing binary fragments:
 
     5> binpp:pprint(Bin2, {0, 3}, []).
-    66 6F 6F                                         foo
+    0000 66 6F 6F                                         foo
 
 Also, binary byte-to-byte comparsion:
 
