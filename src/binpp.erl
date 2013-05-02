@@ -22,6 +22,8 @@
 -export([from_str/1]).
 -export([convert/1, convert/2]).
 
+-export_type([opt/0, opts/0]).
+
 -opaque opt()  :: {return, iolist} | {return, binary} | {printer, function()}.
 -opaque opts() :: list(opt()).
 
