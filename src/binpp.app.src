@@ -2,5 +2,10 @@
     {description, "Erlang Binary Pretty Printer"},
     {vsn, "1.1.1"},
     {registered, []},
-    {applications, [kernel, stdlib]}
+    {applications, [kernel, stdlib]},
+    {env, []},
+    {modules, []},
+    {maintainers, ["Adam Rutkowski"]},
+    {licenses, ["WTFPL"]},
+    {links, [{"Github", "https://github.com/jtendo/binpp"}]}
 ]}.
