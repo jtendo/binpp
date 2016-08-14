@@ -217,8 +217,24 @@ buckets(X, N, M, [H|T], [A|Acc]) ->
 -define(MAX_BIN_SIZE, 2048).
 -define(RUNS, 100).
 
+-ifdef(rand_only).
+-define(random, rand).
+-else.
+-define(random, random).
+-endif.
+
+-ifdef(rand_only).
+random_seed() ->
+    %% the rand module self-seeds
+    ok.
+-else.
+random_seed() ->
+    <<A:32, B:32, C:32>> = crypto:rand_bytes(12),
+    random:seed({A,B,C}).
+-endif.
+
 setup_random() ->
-    _ = random:seed(erlang:now()),
+    _ = random_seed(),
     ok.
 
 binpp_random_test_() ->
@@ -345,20 +361,22 @@ convert_bin_test_() ->
 
 rand_pprint() ->
     F = fun pprint/1,
-    Tests = [ { crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)), ok } || _ <- lists:seq(1, ?RUNS) ],
+    Tests = [ { crypto:strong_rand_bytes(?random:uniform(?MAX_BIN_SIZE)), ok } || _ <- lists:seq(1, ?RUNS) ],
     [ { <<"Random pprint">>, fun() -> ?assertEqual(R, F(I)) end }
              || { I, R } <- Tests ].
 
 rand_pprint_bitstring() ->
     F = fun pprint/1,
-    Tests = [ { << (crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)))/binary, 0:(random:uniform(7))>>, ok }
+    Tests = [ { <<
+                  (crypto:strong_rand_bytes(?random:uniform(?MAX_BIN_SIZE)))/binary,
+                  0:(?random:uniform(7))>>, ok }
              || _ <- lists:seq(1, ?RUNS) ],
     [ { <<"Random pprint (bitstring)">>, fun() -> ?assertEqual(R, F(I)) end }
              || { I, R } <- Tests ].
 
 rand_compare() ->
     F = fun compare/2,
-    Rand = fun() -> crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)) end,
+    Rand = fun() -> crypto:strong_rand_bytes(?random:uniform(?MAX_BIN_SIZE)) end,
     Tests = [ { { Rand(), Rand() }, ok } || _ <- lists:seq(1, ?RUNS) ],
     [ { <<"Random compare">>, fun() -> ?assertEqual(R, F(I1, I2)) end }
              || { {I1, I2}, R } <- Tests ].
@@ -375,8 +393,8 @@ rand_pprint_opts() ->
             ],
     Range = length(OptsMap),
     Rand = fun() ->
-        Input = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
-        {Opt, Predicate} = lists:nth(random:uniform(Range), OptsMap),
+        Input = crypto:strong_rand_bytes(?random:uniform(?MAX_BIN_SIZE)),
+        {Opt, Predicate} = lists:nth(?random:uniform(Range), OptsMap),
         {Input, Opt, Predicate}
     end,
     Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
@@ -388,9 +406,9 @@ rand_pprint_opts() ->
 rand_pprint_slice() ->
     F = fun pprint/3,
     Rand = fun() ->
-            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
-            Pos = random:uniform(byte_size(Bytes)),
-            Len = random:uniform(byte_size(Bytes)),
+            Bytes = crypto:strong_rand_bytes(?random:uniform(?MAX_BIN_SIZE)),
+            Pos = ?random:uniform(byte_size(Bytes)),
+            Len = ?random:uniform(byte_size(Bytes)),
             {Bytes, Pos, Len}
     end,
     Tests = [ Rand() || _ <- lists:seq(1, ?RUNS) ],
@@ -403,9 +421,9 @@ rand_pprint_slice() ->
 rand_from_str() ->
     F = fun from_str/1,
     Rand = fun() ->
-            Bytes = crypto:rand_bytes(random:uniform(?MAX_BIN_SIZE)),
+            Bytes = crypto:strong_rand_bytes(?random:uniform(?MAX_BIN_SIZE)),
             {ok, Converted} = convert(Bytes),
-            case random:uniform(2) of
+            case ?random:uniform(2) of
                 1 -> {lists:flatten(Converted), Bytes};
                 2 -> {string:join(Converted, " "), Bytes}
             end
