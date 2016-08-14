@@ -1,5 +1,12 @@
 language: erlang
+
 otp_release:
-  - R15B02
-  - R15B01
   - R15B
+  - R16B03
+  - 17.0
+  - 18.0
+  - 19.0
+
+install: wget https://s3.amazonaws.com/rebar3/rebar3 && chmod 755 rebar3
+
+script: ./rebar3 eunit

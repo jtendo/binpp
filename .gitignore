@@ -1,7 +1,8 @@
 .eunit
-ebin
 deps
 priv
 *.o
 *.beam
 rebar
+_build
+*.xml
