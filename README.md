@@ -1,6 +1,8 @@
 binpp - Erlang Binary Pretty Printer
 ===================================
 
+Hex.pm: https://hex.pm/packages/binpp
+
 [![Build Status](https://secure.travis-ci.org/jtendo/binpp.png)](http://travis-ci.org/jtendo/binpp)
 
 Example usage:
